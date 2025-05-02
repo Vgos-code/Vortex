@@ -1,0 +1,54 @@
+def calculate_bmr(weight_kg: float, age: int, sex: str) -> float:
+    """
+    Calcula o Metabolismo Basal (BMR) de forma simplificada com base em peso, idade e sexo.
+    Fórmula simplificada: Homens: 24 kcal por kg de peso; Mulheres: 22 kcal por kg de peso.
+    """
+    sex = sex.strip().lower()
+    if sex not in ('m', 'f'):
+        raise ValueError("Sexo deve ser 'M' para masculino ou 'F' para feminino")
+
+    factor = 24 if sex == 'm' else 22
+    bmr = factor * weight_kg
+    return bmr
+
+
+def recommended_calories(bmr: float, activity_level: str = 'low') -> float:
+    """
+    Ajusta o BMR para recomendar calorias diárias com base no nível de atividade.
+    Níveis de atividade:
+    - low: sedentário (BMR x 1.2)
+    - moderate: moderado (BMR x 1.55)
+    - high: ativo (BMR x 1.725)
+    """
+    levels = {
+        'low': 1.2,
+        'moderate': 1.55,
+        'high': 1.725
+    }
+    activity_level = activity_level.strip().lower()
+    if activity_level not in levels:
+        raise ValueError("Nível de atividade deve ser 'low', 'moderate' ou 'high'")
+
+    return bmr * levels[activity_level]
+
+
+def main():
+    print("=== Aplicação de Apoio para Nutricionistas ===")
+    try:
+        weight = float(input("Peso (kg): "))
+        age = int(input("Idade (anos): "))
+        sex = input("Sexo (M/F): ")
+        activity = input("Nível de atividade (low/moderate/high) [low]: ") or 'low'
+
+        bmr = calculate_bmr(weight, age, sex)
+        calories = recommended_calories(bmr, activity)
+
+        print("\n--- Resultados ---")
+        print(f"Metabolismo Basal estimado: {bmr:.0f} kcal/dia")
+        print(f"Calorias diárias recomendadas (atividade '{activity}'): {calories:.0f} kcal/dia")
+    except ValueError as e:
+        print(f"Erro de entrada: {e}")
+
+
+if __name__ == '__main__':
+    main()
