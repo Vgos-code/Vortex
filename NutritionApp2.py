@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 import random
 
 # Cálculos nutricionais
@@ -199,6 +199,8 @@ class NutritionApp(tk.Tk):
         self.geometry('800x800')
         self.resizable(True, True)
 
+        self.results_data = {}
+
         # Variáveis de entrada
         self.weight_var = tk.DoubleVar()
         self.height_var = tk.DoubleVar()
@@ -232,8 +234,9 @@ class NutritionApp(tk.Tk):
         activity_combo.grid(row=row, column=1, padx=5, pady=5)
         row += 1
 
-        # Botão de cálculo
-        ttk.Button(self, text='Calcular Plano', command=self.calculate).pack(pady=10)
+        # Botões de ação
+        ttk.Button(self, text='Calcular Plano', command=self.calculate).pack(pady=5)
+        ttk.Button(self, text='Salvar Plano', command=self.save_results).pack(pady=5)
 
         # Frame de resultados
         self.results_frame = ttk.LabelFrame(self, text='Resultados', padding=10)
@@ -267,6 +270,37 @@ class NutritionApp(tk.Tk):
             text.configure(yscrollcommand=scrollbar.set)
             self.meal_texts[meal] = text
 
+    def save_results(self):
+        if not self.results_data:
+            messagebox.showinfo('Salvar Plano', 'Calcule o plano antes de salvar.')
+            return
+        file_path = filedialog.asksaveasfilename(defaultextension='.txt',
+                                                 filetypes=[('Text files', '*.txt')])
+        if not file_path:
+            return
+        try:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(f"Peso: {self.results_data['weight']} kg\n")
+                f.write(f"Altura: {self.results_data['height']} cm\n")
+                f.write(f"Idade: {self.results_data['age']} anos\n")
+                f.write(f"Sexo: {self.results_data['sex']}\n")
+                f.write(f"Atividade: {self.results_data['activity']}\n\n")
+                f.write(f"Metabolismo Basal: {self.results_data['bmr']:.0f} kcal/dia\n")
+                f.write(f"Calorias Recomendadas: {self.results_data['calories']:.0f} kcal/dia\n")
+                f.write(f"IMC: {self.results_data['bmi']:.1f} ({self.results_data['classification']})\n")
+                f.write(
+                    f"Macros (g): Carbs {self.results_data['carbs']}, Prot {self.results_data['prot']}, Gord {self.results_data['fat']}\n"
+                )
+                f.write(f"Ingestão de água (L/dia): {self.results_data['water']}\n\n")
+                for meal, combos in self.results_data['plan'].items():
+                    f.write(meal + '\n')
+                    for i, combo in enumerate(combos, 1):
+                        f.write(f"  {i}. {combo}\n")
+                    f.write('\n')
+            messagebox.showinfo('Salvar Plano', 'Plano salvo com sucesso!')
+        except Exception as e:
+            messagebox.showerror('Erro ao Salvar', str(e))
+
     def calculate(self):
         try:
             weight = self.weight_var.get()
@@ -275,6 +309,9 @@ class NutritionApp(tk.Tk):
             sex = self.sex_var.get()
             activity = self.activity_var.get()
 
+            if weight <= 0 or height <= 0 or age <= 0:
+                raise ValueError('Peso, altura e idade devem ser positivos')
+
             bmr = calculate_bmr(weight, height, age, sex)
             calories = recommended_calories(bmr, activity)
             bmi = calculate_bmi(weight, height)
@@ -282,6 +319,23 @@ class NutritionApp(tk.Tk):
             carbs, prot, fat = macro_distribution(calories)
             water = water_intake(weight)
             plan = generate_meal_plan()
+
+            self.results_data = {
+                'weight': weight,
+                'height': height,
+                'age': age,
+                'sex': sex,
+                'activity': activity,
+                'bmr': bmr,
+                'calories': calories,
+                'bmi': bmi,
+                'classification': classification,
+                'carbs': carbs,
+                'prot': prot,
+                'fat': fat,
+                'water': water,
+                'plan': plan,
+            }
 
             # Atualizar labels
             self.bmr_label.config(text=f'Metabolismo Basal: {bmr:.0f} kcal/dia')
