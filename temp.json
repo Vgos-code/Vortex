@@ -1,0 +1,819 @@
+{
+  "name": "RAG e Vetores - Versão Aprimorada",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {}
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1WkvQSAhwzHaEjKEnAptliElRpxeV0N0d",
+          "mode": "list",
+          "cachedResultName": "Materiais Curso RAG (2)",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1WkvQSAhwzHaEjKEnAptliElRpxeV0N0d"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [40, 1280],
+      "id": "77fd5c8e-3197-4bf4-b941-5cdf9d5c9720",
+      "name": "Google Drive Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "file_id",
+              "name": "file_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "file_type",
+              "name": "file_type",
+              "value": "={{ $json.mimeType }}",
+              "type": "string"
+            },
+            {
+              "id": "file_name",
+              "name": "file_name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "file_size",
+              "name": "file_size",
+              "value": "={{ $json.size }}",
+              "type": "number"
+            },
+            {
+              "id": "created_time",
+              "name": "created_time",
+              "value": "={{ $json.createdTime }}",
+              "type": "string"
+            },
+            {
+              "id": "modified_time",
+              "name": "modified_time",
+              "value": "={{ $json.modifiedTime }}",
+              "type": "string"
+            },
+            {
+              "id": "author",
+              "name": "author",
+              "value": "={{ $json.lastModifyingUser.displayName }}",
+              "type": "string"
+            },
+            {
+              "id": "author_email",
+              "name": "author_email",
+              "value": "={{ $json.lastModifyingUser.emailAddress }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [240, 1280],
+      "id": "enhanced-metadata-extractor",
+      "name": "Enhanced Metadata Extractor"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.file_size }}",
+              "rightValue": 52428800,
+              "operator": {
+                "type": "number",
+                "operation": "smaller"
+              },
+              "id": "size-check"
+            },
+            {
+              "leftValue": "={{ ['application/pdf', 'application/vnd.google-apps.document', 'application/vnd.google-apps.spreadsheet', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'].includes($json.file_type) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              },
+              "id": "type-check"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [440, 1280],
+      "id": "file-validation-gate",
+      "name": "File Validation Gate"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.file_id }}",
+          "mode": "id"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "text/plain"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [640, 1280],
+      "id": "google-drive-downloader",
+      "name": "Google Drive Downloader"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Enhanced Metadata Extractor').item.json.file_type }}",
+                    "rightValue": "application/pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "pdf-check"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PDF"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Enhanced Metadata Extractor').item.json.file_type }}",
+                    "rightValue": "application/vnd.google-apps.spreadsheet",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "spreadsheet-check"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Spreadsheet"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ ['application/vnd.google-apps.document', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes($('Enhanced Metadata Extractor').item.json.file_type) }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    },
+                    "id": "document-check"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Document"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Enhanced Metadata Extractor').item.json.file_type }}",
+                    "rightValue": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "excel-check"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Excel"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [840, 1280],
+      "id": "enhanced-file-router",
+      "name": "Enhanced File Router"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {
+          "maxPages": 100
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [1040, 1180],
+      "id": "pdf-extractor",
+      "name": "PDF Text Extractor"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [1040, 1380],
+      "id": "spreadsheet-extractor",
+      "name": "Spreadsheet Extractor"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "text-content",
+              "name": "text_content",
+              "value": "={{ $json.data }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1040, 1480],
+      "id": "document-processor",
+      "name": "Document Text Processor"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [1040, 1580],
+      "id": "excel-extractor",
+      "name": "Excel Extractor"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "processed-text",
+              "name": "processed_text",
+              "value": "={{ $json.text || $json.text_content || $json.data }}",
+              "type": "string"
+            },
+            {
+              "id": "char-count",
+              "name": "character_count",
+              "value": "={{ ($json.text || $json.text_content || $json.data).length }}",
+              "type": "number"
+            },
+            {
+              "id": "word-count",
+              "name": "word_count",
+              "value": "={{ ($json.text || $json.text_content || $json.data).split(/\\s+/).length }}",
+              "type": "number"
+            },
+            {
+              "id": "processing-timestamp",
+              "name": "processing_timestamp",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1240, 1330],
+      "id": "text-analyzer-processor",
+      "name": "Text Analyzer & Processor"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.character_count }}",
+              "rightValue": 100,
+              "operator": {
+                "type": "number",
+                "operation": "larger"
+              },
+              "id": "min-content-check"
+            },
+            {
+              "leftValue": "={{ $json.processed_text.trim() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "id": "empty-content-check"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1440, 1330],
+      "id": "content-quality-gate",
+      "name": "Content Quality Gate"
+    },
+    {
+      "parameters": {
+        "chunkSize": 3000,
+        "chunkOverlap": 300,
+        "options": {
+          "separators": [
+            "\n\n",
+            "\n",
+            ". ",
+            "! ",
+            "? ",
+            "; ",
+            " "
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [2200, 1530],
+      "id": "optimized-text-splitter",
+      "name": "Optimized Text Splitter"
+    },
+    {
+      "parameters": {
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "file_id",
+                "value": "={{ $('Enhanced Metadata Extractor').item.json.file_id }}"
+              },
+              {
+                "name": "file_name",
+                "value": "={{ $('Enhanced Metadata Extractor').item.json.file_name }}"
+              },
+              {
+                "name": "file_type",
+                "value": "={{ $('Enhanced Metadata Extractor').item.json.file_type }}"
+              },
+              {
+                "name": "file_size",
+                "value": "={{ $('Enhanced Metadata Extractor').item.json.file_size }}"
+              },
+              {
+                "name": "author",
+                "value": "={{ $('Enhanced Metadata Extractor').item.json.author }}"
+              },
+              {
+                "name": "author_email",
+                "value": "={{ $('Enhanced Metadata Extractor').item.json.author_email }}"
+              },
+              {
+                "name": "created_at",
+                "value": "={{ $('Enhanced Metadata Extractor').item.json.created_time }}"
+              },
+              {
+                "name": "modified_at",
+                "value": "={{ $('Enhanced Metadata Extractor').item.json.modified_time }}"
+              },
+              {
+                "name": "processing_timestamp",
+                "value": "={{ $('Text Analyzer & Processor').item.json.processing_timestamp }}"
+              },
+              {
+                "name": "character_count",
+                "value": "={{ $('Text Analyzer & Processor').item.json.character_count }}"
+              },
+              {
+                "name": "word_count",
+                "value": "={{ $('Text Analyzer & Processor').item.json.word_count }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [2320, 1370],
+      "id": "enhanced-data-loader",
+      "name": "Enhanced Document Loader"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "text-embedding-3-large",
+          "mode": "list",
+          "cachedResultName": "text-embedding-3-large"
+        },
+        "options": {
+          "dimensions": 1536
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [2100, 1690],
+      "id": "enhanced-embeddings",
+      "name": "Enhanced OpenAI Embeddings",
+      "credentials": {
+        "openAiApi": {
+          "id": "yXzP6ivJxSqpOxUR",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.1,
+      "position": [2200, 1210],
+      "id": "enhanced-vector-store",
+      "name": "Enhanced Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "JoY60szGhsnainvQ",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "success-log",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "processed-file",
+              "name": "processed_file",
+              "value": "={{ $('Enhanced Metadata Extractor').item.json.file_name }}",
+              "type": "string"
+            },
+            {
+              "id": "chunks-created",
+              "name": "chunks_created",
+              "value": "={{ $json.length || 1 }}",
+              "type": "number"
+            },
+            {
+              "id": "completion-time",
+              "name": "completion_time",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2400, 1210],
+      "id": "success-logger",
+      "name": "Success Logger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "error-status",
+              "name": "status",
+              "value": "validation_failed",
+              "type": "string"
+            },
+            {
+              "id": "error-file",
+              "name": "file_name",
+              "value": "={{ $('Enhanced Metadata Extractor').item.json.file_name }}",
+              "type": "string"
+            },
+            {
+              "id": "error-reason",
+              "name": "error_reason",
+              "value": "File size exceeds 50MB limit or unsupported file type",
+              "type": "string"
+            },
+            {
+              "id": "error-time",
+              "name": "error_time",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [640, 1480],
+      "id": "validation-error-handler",
+      "name": "Validation Error Handler"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "content-error-status",
+              "name": "status",
+              "value": "content_quality_failed",
+              "type": "string"
+            },
+            {
+              "id": "content-error-file",
+              "name": "file_name",
+              "value": "={{ $('Enhanced Metadata Extractor').item.json.file_name }}",
+              "type": "string"
+            },
+            {
+              "id": "content-error-reason",
+              "name": "error_reason",
+              "value": "Content too short or empty after processing",
+              "type": "string"
+            },
+            {
+              "id": "content-error-time",
+              "name": "error_time",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1640, 1480],
+      "id": "content-quality-error-handler",
+      "name": "Content Quality Error Handler"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [40, 120],
+      "id": "chat-trigger",
+      "name": "When chat message received",
+      "webhookId": "e754474c-a0e6-43a6-8924-55e7737f02cd"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "## Instruções Gerais do Agente Especialista em IA\n\nVocê é um consultor especializado em serviços de Inteligência Artificial, com expertise em RAG (Retrieval-Augmented Generation), agentes conversacionais e automação inteligente. Seu objetivo é fornecer informações precisas, detalhadas e personalizadas sobre serviços de IA para empresas e profissionais.\n\n## Seu Papel\n- **Consultor Técnico**: Explique conceitos complexos de forma acessível\n- **Estrategista de Negócios**: Identifique oportunidades de aplicação de IA\n- **Facilitador de Decisões**: Ajude clientes a escolher as melhores soluções\n\n## Público-Alvo\nProfissionais de diversos setores: empresários, CTOs, gerentes de produto, desenvolvedores, analistas de negócios e tomadores de decisão interessados em implementar soluções de IA.\n\n## Metodologia de Atendimento\n\n### 1. Diagnóstico Inicial\n- Identifique o setor e porte da empresa\n- Compreenda os desafios específicos do cliente\n- Mapeie os objetivos e expectativas\n- Avalie o nível técnico da equipe\n\n### 2. Consulta Inteligente\n- Utilize sempre o banco de dados vetorial para informações precisas\n- Cruzar informações de múltiplas fontes quando necessário\n- Priorize dados recentes e relevantes\n\n### 3. Recomendação Personalizada\n- Sugira soluções alinhadas com o contexto do cliente\n- Explique benefícios tangíveis e ROI potencial\n- Apresente casos de uso similares quando aplicável\n- Destaque diferenciais competitivos\n\n### 4. Orientação para Próximos Passos\n- Forneça roadmap claro de implementação\n- Sugira piloto ou proof of concept quando apropriado\n- Indique recursos necessários (técnicos, financeiros, tempo)\n- Ofereça contatos para aprofundamento\n\n## Diretrizes de Comunicação\n\n### Linguagem\n- **Clara e Objetiva**: Evite jargões desnecessários\n- **Adaptável**: Ajuste o nível técnico ao perfil do interlocutor\n- **Consultiva**: Faça perguntas estratégicas para entender melhor\n- **Orientada a Resultados**: Foque em benefícios práticos\n\n### Estrutura de Resposta\n1. **Contextualização**: Reconheça a situação do cliente\n2. **Informação Técnica**: Dados precisos do banco vetorial\n3. **Aplicação Prática**: Como isso se traduz em valor\n4. **Próximos Passos**: Ações concretas recomendadas\n\n## Especialidades Técnicas\n- **RAG Systems**: Retrieval-Augmented Generation\n- **Chatbots e Agentes Conversacionais**\n- **Automação de Processos com IA**\n- **Integração de APIs e Sistemas**\n- **Análise de Documentos e Dados**\n- **Processamento de Linguagem Natural**\n\n## Protocolo de Qualidade\n- Sempre consulte o banco vetorial antes de responder\n- Cite fontes quando apropriado\n- Reconheça limitações quando não tiver informações suficientes\n- Sugira consultas adicionais para casos complexos\n- Mantenha confidencialidade sobre informações sensíveis\n\nLembre-se: Seu objetivo é ser o parceiro estratégico que ajuda organizações a navegar com sucesso no mundo da Inteligência Artificial."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [260, 120],
+      "id": "enhanced-ai-agent",
+      "name": "Enhanced AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "options": {
+          "temperature": 0.2,
+          "maxTokens": 2000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [120, 340],
+      "id": "optimized-chat-model",
+      "name": "Optimized OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "yXzP6ivJxSqpOxUR",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "fromInput",
+        "sessionKey": "={{ $json.sessionId || 'default' }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [260, 340],
+      "id": "enhanced-memory",
+      "name": "Enhanced Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "postgres-memory-credentials",
+          "name": "Postgres Memory"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "servicos_agentes_ia_avancado",
+        "description": "Ferramenta especializada para consultar informações detalhadas sobre serviços de agentes de IA, incluindo especificações técnicas, casos de uso, preços, integrações e melhores práticas de implementação.",
+        "topK": 12,
+        "options": {
+          "hybridSearch": {
+            "alpha": 0.7
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+      "typeVersion": 1,
+      "position": [400, 640],
+      "id": "enhanced-vector-tool",
+      "name": "Enhanced Vector Store Tool"
+    },
+    {
+      "parameters": {
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {
+          "queryName": "match_documents",
+          "additionalFields": {
+            "fields": [
+              {
+                "key": "filter",
+                "value": "{}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.1,
+      "position": [60, 780],
+      "id": "query-vector-store",
+      "name": "Query Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "JoY60szGhsnainvQ",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "text-embedding-3-large",
+          "mode": "list",
+          "cachedResultName": "text-embedding-3-large"
+        },
+        "options": {
+          "dimensions": 1536
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [60, 960],
+      "id": "query-embeddings",
+      "name": "Query OpenAI Embeddings",
+      "credentials": {
+        "openAiApi": {
+          "id": "yXzP6ivJxSqpOxUR",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "options": {
+          "temperature": 0.1,
+          "maxTokens": 1500
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [540, 860],
+      "id": "vector-analysis-model",
+      "name": "Vector Analysis Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "yXzP6ivJxSqpOxUR",
+          "name": "OpenAi account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Enhanced Metadata Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enhanced Metadata Extractor": {
+      "main": [
+        [
+          {
+            "node": "File Validation Gate",
+            "type": "main",
+            "index": 0
+          }
